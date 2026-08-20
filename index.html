@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speaking Topic Spinner</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182029;
+      --muted: #657080;
+      --line: #d9dee6;
+      --paper: #f8f5ee;
+      --panel: #ffffff;
+      --accent: #e85d3f;
+      --accent-dark: #bd3f29;
+      --green: #287b61;
+      --blue: #306f9f;
+      --yellow: #efb83f;
+      --shadow: 0 20px 60px rgba(28, 36, 48, .14);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(24, 32, 41, .035) 1px, transparent 1px),
+        linear-gradient(rgba(24, 32, 41, .035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px clamp(18px, 4vw, 44px);
+      border-bottom: 1px solid rgba(24, 32, 41, .12);
+      background: rgba(248, 245, 238, .88);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: var(--yellow);
+      box-shadow: 4px 4px 0 var(--ink);
+      flex: 0 0 auto;
+    }
+
+    .mark svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.4;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 2vw, 1.45rem);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .subhead {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: clamp(18px, 3vw, 34px);
+      align-items: stretch;
+      padding: clamp(18px, 4vw, 44px);
+      max-width: 1240px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .stage {
+      min-height: 620px;
+      display: grid;
+      grid-template-rows: auto minmax(300px, 1fr) auto;
+      gap: 20px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .76);
+      color: var(--muted);
+      font-size: .9rem;
+      white-space: nowrap;
+    }
+
+    .topic-display {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      padding: clamp(22px, 5vw, 54px);
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(232, 93, 63, .16), transparent 28%),
+        radial-gradient(circle at 88% 78%, rgba(40, 123, 97, .16), transparent 30%),
+        linear-gradient(145deg, #ffffff, #f5f2ea);
+      box-shadow: var(--shadow), 7px 7px 0 var(--ink);
+    }
+
+    .topic-display::before,
+    .topic-display::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px dashed rgba(24, 32, 41, .18);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .topic-display::after {
+      inset: auto 18px 18px auto;
+      width: 120px;
+      height: 120px;
+      border-color: rgba(232, 93, 63, .28);
+      transform: rotate(9deg);
+    }
+
+    .topic-inner {
+      position: relative;
+      z-index: 1;
+      width: min(760px, 100%);
+      text-align: center;
+    }
+
+    .category {
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 10px;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .topic {
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      margin: 22px auto 18px;
+      font-size: clamp(2rem, 5.3vw, 4.7rem);
+      line-height: 1.03;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .prompt {
+      min-height: 52px;
+      margin: 0 auto;
+      max-width: 690px;
+      color: #3c4652;
+      font-size: clamp(1rem, 1.8vw, 1.2rem);
+      line-height: 1.45;
+    }
+
+    .topic-display.spinning .topic {
+      animation: thump .15s linear infinite;
+    }
+
+    .topic-display.spinning {
+      animation: flash .28s linear infinite;
+    }
+
+    @keyframes thump {
+      0% { transform: translateY(0) rotate(-.2deg); filter: blur(0); }
+      50% { transform: translateY(-3px) rotate(.4deg); filter: blur(.6px); }
+      100% { transform: translateY(0) rotate(-.2deg); filter: blur(0); }
+    }
+
+    @keyframes flash {
+      0% { border-color: var(--ink); }
+      33% { border-color: var(--accent); }
+      66% { border-color: var(--green); }
+      100% { border-color: var(--blue); }
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) repeat(2, auto);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .primary,
+    .secondary,
+    .icon-button {
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .primary {
+      min-height: 58px;
+      padding: 12px 18px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .secondary,
+    .icon-button {
+      min-height: 50px;
+      padding: 10px 14px;
+      font-weight: 800;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .icon-button {
+      width: 52px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .icon-button svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .primary:hover,
+    .secondary:hover,
+    .icon-button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 7px 0 var(--ink);
+    }
+
+    .primary:active,
+    .secondary:active,
+    .icon-button:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
+    .primary:disabled {
+      opacity: .7;
+      cursor: wait;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .83);
+      padding: 16px;
+      box-shadow: 0 12px 28px rgba(28, 36, 48, .08);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: .87rem;
+      font-weight: 750;
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 10px;
+    }
+
+    .switches {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #35404c;
+      font-size: .94rem;
+      cursor: pointer;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .timer {
+      display: grid;
+      gap: 12px;
+    }
+
+    .timer-face {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .time {
+      font-variant-numeric: tabular-nums;
+      font-size: 2.35rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .timer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .notes {
+      min-height: 150px;
+      width: 100%;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      line-height: 1.4;
+    }
+
+    .history {
+      display: grid;
+      gap: 8px;
+      max-height: 220px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .history-item {
+      display: grid;
+      gap: 3px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .history-topic {
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .history-cat {
+      color: var(--muted);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 800;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 900px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+
+      .side {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .topic-display {
+        min-height: 380px;
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+
+      .topic {
+        min-height: 150px;
+      }
+
+      .controls,
+      .side {
+        grid-template-columns: 1fr;
+      }
+
+      .secondary,
+      .icon-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v1a7 7 0 0 1-14 0v-1"></path>
+            <path d="M12 18v4"></path>
+            <path d="M8 22h8"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>Speaking Topic Spinner</h1>
+          <p class="subhead">Practice thinking clearly when the topic gets weird.</p>
+        </div>
+      </div>
+      <div class="pill" id="topicCount">180 topics loaded</div>
+    </header>
+
+    <main class="main">
+      <section class="stage" aria-live="polite">
+        <div class="status-row">
+          <div class="pill" id="modePill">Mode: Wild mix</div>
+          <div class="pill" id="lengthPill">Spin: 3.0s</div>
+          <div class="pill" id="challengePill">Challenge: normal</div>
+        </div>
+
+        <div class="topic-display" id="display">
+          <div class="topic-inner">
+            <div class="category" id="category">Ready</div>
+            <div class="topic" id="topic">Tap spin.</div>
+            <p class="prompt" id="prompt">You will get a random topic and a speaking angle. Try to make a beginning, middle, and ending without over-planning.</p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="spinButton">Spin Topic</button>
+          <button class="secondary" id="surpriseButton">Surprise Me</button>
+          <button class="icon-button" id="copyButton" title="Copy current topic" aria-label="Copy current topic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <h2>Spin Settings</h2>
+          <div class="field">
+            <label for="categorySelect">Topic style</label>
+            <select id="categorySelect">
+              <option value="all">Wild mix</option>
+              <option value="absurd">Absurd hypotheticals</option>
+              <option value="persuasive">Persuasive</option>
+              <option value="story">Story prompts</option>
+              <option value="explain">Explain it simply</option>
+              <option value="debate">Debate angles</option>
+              <option value="personal">Personal reflection</option>
+              <option value="interview">Professional interview</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="spinRange">Spin time: <span id="spinValue">3.0</span>s</label>
+            <input id="spinRange" type="range" min="1.2" max="6" value="3" step=".2">
+          </div>
+          <div class="switches">
+            <label class="check">
+              <input id="followupToggle" type="checkbox" checked>
+              Add a follow-up angle
+            </label>
+            <label class="check">
+              <input id="challengeToggle" type="checkbox">
+              Make it harder
+            </label>
+          </div>
+        </section>
+
+        <section class="panel timer">
+          <h2>Practice Timer</h2>
+          <div class="timer-face">
+            <div class="time" id="timeDisplay">02:00</div>
+            <select id="timerSelect" aria-label="Timer length">
+              <option value="60">1 min</option>
+              <option value="120" selected>2 min</option>
+              <option value="180">3 min</option>
+              <option value="300">5 min</option>
+            </select>
+          </div>
+          <div class="timer-actions">
+            <button class="secondary" id="timerButton">Start</button>
+            <button class="secondary" id="resetTimerButton">Reset</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Quick Notes</h2>
+          <textarea class="notes" id="notes" placeholder="Jot your hook, three points, or one line you want to land."></textarea>
+        </section>
+
+        <section class="panel">
+          <h2>Recent Topics</h2>
+          <div class="history" id="history">
+            <p class="empty">Your last picks will appear here.</p>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const topics = [
+      ["absurd", "The moon applies for a day job", "Explain why it is qualified, and what it refuses to put on its resume."],
+      ["absurd", "A vending machine that gives life advice", "Pitch the machine to a skeptical school principal."],
+      ["absurd", "Why clouds should have customer service", "Describe the complaints department and its strangest caller."],
+      ["absurd", "A courtroom trial for the last slice of pizza", "Argue either the defense or prosecution."],
+      ["absurd", "If elevators could gossip", "Reveal what they know about modern civilization."],
+      ["absurd", "A library where books interview readers", "Describe the rules and why one book rejects you."],
+      ["absurd", "The secret union of missing socks", "Explain their demands and negotiation tactics."],
+      ["absurd", "A city where everyone has theme music", "Discuss how daily life changes."],
+      ["absurd", "Breakfast cereal as a political movement", "Give its platform in a serious tone."],
+      ["absurd", "A museum of smells from extinct vacations", "Lead a tour through the most controversial exhibit."],
+      ["absurd", "The Olympic sport of folding fitted sheets", "Commentate the final round."],
+      ["absurd", "A haunted spreadsheet", "Explain what makes it terrifying to accountants."],
+      ["absurd", "A dragon running a small bakery", "Describe the business model and workplace hazards."],
+      ["absurd", "The first restaurant on Mars gets a bad review", "Defend it publicly."],
+      ["absurd", "A dating app for houseplants", "Explain what makes a great profile."],
+      ["absurd", "The autobiography of a traffic cone", "Deliver the opening chapter."],
+      ["absurd", "A submarine stuck in a swimming pool", "Explain how it happened and what leadership lesson it teaches."],
+      ["absurd", "Why mirrors are secretly exhausted", "Make the case with empathy."],
+      ["absurd", "An airport for time travelers", "Walk us through security."],
+      ["absurd", "A tiny nation inside a refrigerator", "Describe its economy and foreign policy."],
+      ["absurd", "The annual conference of keyboard shortcuts", "Summarize the keynote."],
+      ["absurd", "A detective who solves crimes by tasting soup", "Explain the method with total confidence."],
+      ["absurd", "Shoes that remember every sidewalk", "Tell us what they would warn us about."],
+      ["absurd", "The weather report for a person's mood", "Deliver today's forecast."],
+      ["absurd", "A motivational speaker for furniture", "Give the speech to a room of chairs."],
+      ["absurd", "The first school for imaginary friends", "Describe graduation day."],
+      ["absurd", "Why umbrellas should not run banks", "Make a calm and evidence-based case."],
+      ["absurd", "A lighthouse in the desert", "Explain why people need it."],
+      ["absurd", "An orchestra made of kitchen appliances", "Review opening night."],
+      ["absurd", "The legal rights of shadows", "Argue for a constitutional amendment."],
+      ["persuasive", "Every adult should learn one magic trick", "Convince a practical audience it has real value."],
+      ["persuasive", "Small talk is underrated", "Defend it as a civic skill."],
+      ["persuasive", "Libraries should stay open late", "Make the case to a city budget committee."],
+      ["persuasive", "Everyone should keep a boredom list", "Explain how boredom can become useful."],
+      ["persuasive", "We should bring back intermissions", "Argue for them in movies, meetings, and life."],
+      ["persuasive", "Handwritten notes still matter", "Persuade someone who only texts."],
+      ["persuasive", "Cities need more public benches", "Show why this is about more than sitting."],
+      ["persuasive", "Failure should get better branding", "Pitch a rebrand that changes behavior."],
+      ["persuasive", "Every meeting needs a referee", "Explain the rules and benefits."],
+      ["persuasive", "People should apprentice at one ordinary job", "Make this sound transformative, not punitive."],
+      ["persuasive", "The best ideas need a waiting period", "Argue against instant decisions."],
+      ["persuasive", "Restaurants should offer quiet sections", "Make a hospitality argument."],
+      ["persuasive", "Public speaking should be taught like cooking", "Compare skills, practice, and confidence."],
+      ["persuasive", "We need more rituals for finishing things", "Convince people that endings deserve design."],
+      ["persuasive", "Everyone should own fewer tabs", "Make a speech about attention."],
+      ["persuasive", "The world needs more amateur competitions", "Explain why low-stakes rivalry is healthy."],
+      ["persuasive", "Compliments should be more specific", "Teach an audience how specificity changes relationships."],
+      ["persuasive", "Museums should let people touch one thing", "Argue for curiosity with boundaries."],
+      ["persuasive", "A good apology is a public good", "Explain how it improves trust beyond one person."],
+      ["persuasive", "We should celebrate maintenance more than invention", "Make the invisible work visible."],
+      ["persuasive", "More signs should be funny", "Persuade a safety committee without sounding reckless."],
+      ["persuasive", "Every team needs a nonsense hour", "Argue that play can improve serious work."],
+      ["persuasive", "Pets should not have social media accounts", "Take a strong stance, then soften it."],
+      ["persuasive", "We should teach people how to quit well", "Explain why good exits are a life skill."],
+      ["persuasive", "The snooze button is a design failure", "Convince tired people."],
+      ["story", "The day your shadow quit", "Tell the story as if it changed your career."],
+      ["story", "A stranger gives you a map with no places on it", "Build suspense and reveal what the map actually shows."],
+      ["story", "You wake up famous for something you never did", "Explain how you handle the first interview."],
+      ["story", "Your phone starts receiving calls from next Tuesday", "Tell us the first three calls."],
+      ["story", "A locked door appears in your childhood bedroom", "Describe what you find behind it."],
+      ["story", "Your least favorite chore becomes a competitive sport", "Narrate your rise to the finals."],
+      ["story", "You accidentally join a secret society at a grocery store", "Explain the initiation ritual."],
+      ["story", "A train arrives carrying only apologies", "Tell us who gets off first."],
+      ["story", "The town forgets one word every day", "Describe the day they forget your name."],
+      ["story", "Your umbrella opens into a different season", "Tell a compact adventure."],
+      ["story", "Someone mails you a box of laughter", "Describe how you use it and what goes wrong."],
+      ["story", "A famous statue asks you for career advice", "Tell the conversation."],
+      ["story", "You find a receipt for the future", "Explain what purchase scares you most."],
+      ["story", "Your alarm clock starts negotiating", "Tell the morning like a business drama."],
+      ["story", "A cafe serves memories instead of coffee", "Describe what you order."],
+      ["story", "Your reflection is running late", "Tell us how you cover for it."],
+      ["story", "You inherit a lighthouse in a landlocked town", "Explain why you keep it."],
+      ["story", "A suitcase follows you home", "Tell the story from your point of view."],
+      ["story", "Every lie you tell turns into a houseplant", "Describe the first week."],
+      ["story", "You have ten minutes to teach a robot sarcasm", "Tell the scene."],
+      ["story", "The elevator skips floor seven for personal reasons", "Discover why."],
+      ["story", "Your shoes choose the destination", "Narrate one surprising walk."],
+      ["story", "A newspaper publishes tomorrow's weather for your decisions", "Explain how people react."],
+      ["story", "A quiet neighbor turns out to be retired thunder", "Tell how you find out."],
+      ["story", "Your grocery list becomes a poem", "Tell how it changes dinner."],
+      ["explain", "How Wi-Fi works using only kitchen objects", "Make it simple enough for a curious ten-year-old."],
+      ["explain", "The stock market as a school cafeteria", "Avoid jargon and keep the metaphor consistent."],
+      ["explain", "Why people procrastinate", "Explain without scolding the audience."],
+      ["explain", "How a rumor spreads", "Use a physical object as your central image."],
+      ["explain", "What makes a habit stick", "Break it into three memorable parts."],
+      ["explain", "Why sunsets look colorful", "Make the science feel visual."],
+      ["explain", "How a city stays awake", "Explain systems people rarely notice."],
+      ["explain", "Why music changes mood", "Use one everyday example."],
+      ["explain", "How bread rises", "Make yeast sound interesting."],
+      ["explain", "Why passwords fail", "Explain the human side and the technical side."],
+      ["explain", "How an idea becomes a trend", "Walk from one person to a crowd."],
+      ["explain", "Why sleep matters", "Explain it like you are advising a busy friend."],
+      ["explain", "How maps shape behavior", "Explain how a map can change a choice."],
+      ["explain", "What makes a joke work", "Use timing, surprise, and expectation."],
+      ["explain", "How a budget is like a garden", "Make the metaphor useful, not cute."],
+      ["explain", "Why memory is unreliable", "Explain with compassion."],
+      ["explain", "How traffic jams form", "Make the invisible chain reaction clear."],
+      ["explain", "Why teams need trust", "Explain it through a shared kitchen."],
+      ["explain", "How vaccines train the immune system", "Keep it accurate and accessible."],
+      ["explain", "Why public speaking feels scary", "Explain the body response and how practice helps."],
+      ["explain", "How a camera sees light", "Explain aperture, shutter, and focus simply."],
+      ["explain", "Why good design disappears", "Use examples from doors, apps, or airports."],
+      ["explain", "How compost works", "Make decay sound productive."],
+      ["explain", "Why inflation matters", "Explain through groceries and wages."],
+      ["explain", "How a search engine ranks pages", "Explain without naming algorithms."],
+      ["debate", "Should children vote on local issues?", "Argue one side, then acknowledge the strongest objection."],
+      ["debate", "Should cities ban cars from downtown?", "Balance convenience, access, and public space."],
+      ["debate", "Is remote work better for creativity?", "Take a position with nuance."],
+      ["debate", "Should robots have names?", "Discuss design, emotion, and responsibility."],
+      ["debate", "Is nostalgia useful or dangerous?", "Make both sides sound intelligent."],
+      ["debate", "Should schools grade teamwork?", "Argue how it could be fair or unfair."],
+      ["debate", "Are deadlines motivating or harmful?", "Defend your answer with examples."],
+      ["debate", "Should everyone have a personal uniform?", "Discuss freedom, identity, and decision fatigue."],
+      ["debate", "Is convenience making us less resilient?", "Use one everyday example."],
+      ["debate", "Should public spaces be quieter?", "Weigh liveliness against comfort."],
+      ["debate", "Is being busy a status symbol?", "Explain who benefits from that belief."],
+      ["debate", "Should AI write greeting cards?", "Discuss efficiency and sincerity."],
+      ["debate", "Is perfectionism a strength?", "Argue when it helps and when it harms."],
+      ["debate", "Should museums return every artifact?", "Frame the ethical tension carefully."],
+      ["debate", "Are surprises good planning tools?", "Defend spontaneity or preparation."],
+      ["debate", "Should work emails expire?", "Discuss urgency, accountability, and peace."],
+      ["debate", "Is charisma teachable?", "Use public speaking as your test case."],
+      ["debate", "Should every neighborhood have a shared kitchen?", "Consider culture, cost, and connection."],
+      ["debate", "Is silence underused in conversation?", "Argue from listening and presence."],
+      ["debate", "Should adults get recess?", "Make it sound economically reasonable."],
+      ["debate", "Is honesty always the kindest option?", "Handle edge cases thoughtfully."],
+      ["debate", "Should phones be banned at concerts?", "Compare memory, freedom, and attention."],
+      ["debate", "Is ambition overrated?", "Define what kind of ambition you mean."],
+      ["debate", "Should failure be celebrated?", "Draw a line between learning and carelessness."],
+      ["debate", "Are traditions more useful when they change?", "Make the case with a vivid example."],
+      ["personal", "A tiny habit that changed your day", "Turn something small into a useful lesson."],
+      ["personal", "A time you changed your mind", "Explain what made the change possible."],
+      ["personal", "The best bad advice you ever received", "Show how it became useful anyway."],
+      ["personal", "A skill you learned the awkward way", "Make the awkwardness part of the charm."],
+      ["personal", "Something you misunderstood as a kid", "Connect it to how you see the world now."],
+      ["personal", "A place that made you calmer", "Describe the sensory details."],
+      ["personal", "The most memorable compliment you received", "Explain why it stuck."],
+      ["personal", "A rule you follow that sounds strange", "Defend it with a story."],
+      ["personal", "A small fear you outgrew", "Describe the moment it lost power."],
+      ["personal", "The hardest thing about starting", "Make it relatable and practical."],
+      ["personal", "A time you were underestimated", "Keep the focus on what you learned."],
+      ["personal", "An object you would save from a fire", "Explain what it represents."],
+      ["personal", "A meal that tells a story", "Use taste, memory, and people."],
+      ["personal", "Something you wish people asked you about", "Explain why the question matters."],
+      ["personal", "A mistake that improved your taste", "Describe how your standards changed."],
+      ["personal", "A person who taught you without trying", "Show the lesson through behavior."],
+      ["personal", "A moment you felt unexpectedly brave", "Keep it specific."],
+      ["personal", "A small luxury you defend", "Explain why it matters more than it seems."],
+      ["personal", "A boundary you are glad you set", "Tell the before and after."],
+      ["personal", "A sound that takes you somewhere", "Use it as an opening hook."],
+      ["personal", "A time you had to improvise", "Explain what you discovered about yourself."],
+      ["personal", "A belief you inherited and examined", "Speak with honesty and care."],
+      ["personal", "The best question someone asked you", "Explain what it unlocked."],
+      ["personal", "A boring task you secretly enjoy", "Make the ordinary interesting."],
+      ["personal", "A version of yourself you have retired", "Describe the goodbye without melodrama."],
+      ["interview", "Tell me about yourself", "Give a focused 60-90 second story connecting your experience, strengths, and interest in the role.", "Common"],
+      ["interview", "Why are you interested in this role?", "Connect the work to your skills, motivation, and what you hope to contribute.", "Common"],
+      ["interview", "What is your greatest professional strength?", "Name one strength, prove it with a specific example, and relate it to the role.", "Common"],
+      ["interview", "What is a weakness you are actively improving?", "Choose a genuine limitation, then show the concrete system you use to improve it.", "Common"],
+      ["interview", "Tell me about a time you handled conflict on a team", "Use STAR: clarify the tension, your actions, the outcome, and what you learned.", "Behavioral"],
+      ["interview", "Describe a time you influenced someone without authority", "Show how you understood their priorities, built trust, and moved the work forward.", "Behavioral"],
+      ["interview", "Tell me about a project that did not go as planned", "Be candid about the setback, your response, and the lesson you applied later.", "Behavioral"],
+      ["interview", "Describe a time you had to learn something quickly", "Explain your learning plan, how you checked understanding, and the result.", "Behavioral"],
+      ["interview", "Tell me about a difficult decision you made with incomplete information", "Walk through the tradeoffs, assumptions, decision, and later evidence.", "Behavioral"],
+      ["interview", "Describe a time you improved a process", "Quantify the original problem, your change, and its measurable impact.", "Behavioral"],
+      ["interview", "Tell me about a time you received tough feedback", "Show openness, the action you took, and how your behavior changed afterward.", "Behavioral"],
+      ["interview", "Describe a time you had competing priorities", "Explain how you evaluated urgency and impact, communicated tradeoffs, and delivered.", "Behavioral"],
+      ["interview", "Estimate how many cups of coffee are sold in your city each day", "State assumptions, break the population into useful groups, calculate aloud, and sanity-check the result.", "Logic"],
+      ["interview", "You have eight identical-looking balls and one is heavier. Find it in two weighings", "Think aloud and explain why your method always identifies the heavier ball.", "Logic"],
+      ["interview", "Why are manhole covers usually round?", "Generate several plausible reasons, compare them, and identify the strongest explanation.", "Logic"],
+      ["interview", "How would you test an elevator?", "Organize your answer by safety, function, edge cases, accessibility, and user experience.", "Logic"],
+      ["interview", "How many piano tuners might work in a large city?", "Build a Fermi estimate from households, piano ownership, tuning frequency, and workload.", "Logic"],
+      ["interview", "You have two ropes that each burn for one hour at uneven rates. Measure 45 minutes", "Explain each ignition step and why uneven burning does not break the solution.", "Logic"],
+      ["interview", "Design a way to choose between two equally strong candidates", "Define fair criteria, reduce bias, gather evidence, and make the final decision.", "Logic"],
+      ["interview", "A key metric suddenly drops by 30 percent. What do you do first?", "Separate verification, diagnosis, communication, and action; name the data you would seek.", "Logic"],
+      ["interview", "What kind of work consistently brings out your best performance?", "Identify the conditions, behaviors, and outcomes without describing a perfect fantasy job.", "Reflection"],
+      ["interview", "When have your strengths become liabilities?", "Choose a real strength, explain when it goes too far, and show how you calibrate it.", "Reflection"],
+      ["interview", "What professional belief have you changed your mind about?", "Describe your old view, the evidence that challenged it, and how your behavior changed.", "Reflection"],
+      ["interview", "What would your most demanding teammate say you need to improve?", "Answer with self-awareness, evidence, and a credible improvement plan.", "Reflection"],
+      ["interview", "Tell me about a success that required you to share credit", "Explain the contributions clearly and show how you elevated the team without minimizing your own role.", "Reflection"],
+      ["interview", "What is the hardest ethical tradeoff you have faced at work?", "Protect confidentiality while explaining the competing values, your reasoning, and the outcome.", "Reflection"],
+      ["interview", "When is it right to disagree with your manager?", "Set a principled threshold, explain how you would raise concerns, and describe when you would commit.", "Reflection"],
+      ["interview", "What does excellent leadership look like when morale is low?", "Move beyond slogans: describe specific behaviors, communication, and decisions.", "Reflection"],
+      ["interview", "Which accomplishment best represents how you think?", "Choose one example and reveal your judgment, creativity, persistence, and standards through it.", "Reflection"],
+      ["interview", "What would make you leave a role even if you were succeeding?", "Discuss values and long-term growth with maturity, avoiding ultimatums or generic answers.", "Reflection"]
+    ];
+
+    const hardAngles = [
+      "Include a surprising statistic you invent on the spot, then explain why it feels plausible.",
+      "Start with a question and end by answering it.",
+      "Use exactly three examples.",
+      "Argue the opposite of your real opinion.",
+      "Make it funny for the first half and sincere for the second half.",
+      "Include a brief imaginary quote from an expert.",
+      "Use a physical gesture as part of the explanation.",
+      "End with a one-sentence takeaway people can remember."
+    ];
+
+    const interviewHardAngles = [
+      "Answer in under 90 seconds while preserving a clear situation, action, and result.",
+      "Include one measurable result and one lesson you would apply differently today.",
+      "After answering, name the strongest follow-up question an interviewer could ask and answer it.",
+      "Make your individual contribution clear without diminishing the team.",
+      "State one assumption or limitation in your answer, then explain how you would validate it.",
+      "Give a concise headline first, then support it with evidence."
+    ];
+
+    const display = document.querySelector("#display");
+    const categoryEl = document.querySelector("#category");
+    const topicEl = document.querySelector("#topic");
+    const promptEl = document.querySelector("#prompt");
+    const spinButton = document.querySelector("#spinButton");
+    const surpriseButton = document.querySelector("#surpriseButton");
+    const copyButton = document.querySelector("#copyButton");
+    const categorySelect = document.querySelector("#categorySelect");
+    const spinRange = document.querySelector("#spinRange");
+    const spinValue = document.querySelector("#spinValue");
+    const modePill = document.querySelector("#modePill");
+    const lengthPill = document.querySelector("#lengthPill");
+    const challengePill = document.querySelector("#challengePill");
+    const topicCount = document.querySelector("#topicCount");
+    const followupToggle = document.querySelector("#followupToggle");
+    const challengeToggle = document.querySelector("#challengeToggle");
+    const historyEl = document.querySelector("#history");
+    const timerSelect = document.querySelector("#timerSelect");
+    const timeDisplay = document.querySelector("#timeDisplay");
+    const timerButton = document.querySelector("#timerButton");
+    const resetTimerButton = document.querySelector("#resetTimerButton");
+    const notes = document.querySelector("#notes");
+
+    let currentTopic = null;
+    let spinInterval = null;
+    let timerInterval = null;
+    let timerRemaining = Number(timerSelect.value);
+    let recent = [];
+
+    topicCount.textContent = `${topics.length} topics loaded`;
+
+    function labelFor(category) {
+      return {
+        absurd: "Absurd",
+        persuasive: "Persuasive",
+        story: "Story",
+        explain: "Explain",
+        debate: "Debate",
+        personal: "Personal",
+        interview: "Interview"
+      }[category] || "Wild mix";
+    }
+
+    function pool() {
+      const chosen = categorySelect.value;
+      return chosen === "all" ? topics : topics.filter(([category]) => category === chosen);
+    }
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function render(item, temporary = false) {
+      const [category, topic, prompt, subtype] = item;
+      const challengePool = category === "interview" ? interviewHardAngles : hardAngles;
+      const hard = challengeToggle.checked ? ` ${randomItem(challengePool)}` : "";
+      const followup = followupToggle.checked ? prompt : "Build a clear opening, two supporting points, and a landing sentence.";
+      categoryEl.textContent = temporary ? "Spinning" : subtype ? `${labelFor(category)} / ${subtype}` : labelFor(category);
+      topicEl.textContent = topic;
+      promptEl.textContent = followup + hard;
+      currentTopic = { category, topic, prompt: promptEl.textContent, subtype };
+    }
+
+    function addHistory(item) {
+      recent = [item, ...recent.filter((old) => old.topic !== item.topic)].slice(0, 5);
+      historyEl.innerHTML = recent.map((entry) => `
+        <button class="history-item" type="button" data-topic="${entry.topic.replaceAll('"', "&quot;")}">
+          <span class="history-cat">${entry.subtype ? `${labelFor(entry.category)} / ${entry.subtype}` : labelFor(entry.category)}</span>
+          <span class="history-topic">${entry.topic}</span>
+        </button>
+      `).join("");
+    }
+
+    function updatePills() {
+      const selected = categorySelect.options[categorySelect.selectedIndex].textContent;
+      modePill.textContent = `Mode: ${selected}`;
+      lengthPill.textContent = `Spin: ${Number(spinRange.value).toFixed(1)}s`;
+      challengePill.textContent = `Challenge: ${challengeToggle.checked ? "hard" : "normal"}`;
+      spinValue.textContent = Number(spinRange.value).toFixed(1);
+    }
+
+    function spin() {
+      if (spinInterval) return;
+      const items = pool();
+      const duration = Number(spinRange.value) * 1000;
+      const started = performance.now();
+      display.classList.add("spinning");
+      spinButton.disabled = true;
+      spinButton.textContent = "Spinning...";
+      notes.value = "";
+
+      spinInterval = window.setInterval(() => {
+        render(randomItem(items), true);
+        if (performance.now() - started >= duration) {
+          window.clearInterval(spinInterval);
+          spinInterval = null;
+          const finalTopic = randomItem(items);
+          render(finalTopic);
+          addHistory(currentTopic);
+          display.classList.remove("spinning");
+          spinButton.disabled = false;
+          spinButton.textContent = "Spin Topic";
+        }
+      }, 90);
+    }
+
+    function surprise() {
+      categorySelect.value = "all";
+      spinRange.value = (Math.random() * 3.8 + 1.6).toFixed(1);
+      followupToggle.checked = true;
+      challengeToggle.checked = Math.random() > .45;
+      updatePills();
+      spin();
+    }
+
+    function formatTime(total) {
+      const minutes = Math.floor(total / 60).toString().padStart(2, "0");
+      const seconds = (total % 60).toString().padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function renderTimer() {
+      timeDisplay.textContent = formatTime(timerRemaining);
+    }
+
+    function startStopTimer() {
+      if (timerInterval) {
+        window.clearInterval(timerInterval);
+        timerInterval = null;
+        timerButton.textContent = "Start";
+        return;
+      }
+
+      timerButton.textContent = "Pause";
+      timerInterval = window.setInterval(() => {
+        timerRemaining = Math.max(0, timerRemaining - 1);
+        renderTimer();
+        if (timerRemaining === 0) {
+          window.clearInterval(timerInterval);
+          timerInterval = null;
+          timerButton.textContent = "Start";
+          display.animate(
+            [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }],
+            { duration: 360, iterations: 2 }
+          );
+        }
+      }, 1000);
+    }
+
+    function resetTimer() {
+      if (timerInterval) {
+        window.clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      timerRemaining = Number(timerSelect.value);
+      timerButton.textContent = "Start";
+      renderTimer();
+    }
+
+    spinButton.addEventListener("click", spin);
+    surpriseButton.addEventListener("click", surprise);
+    spinRange.addEventListener("input", updatePills);
+    categorySelect.addEventListener("change", updatePills);
+    challengeToggle.addEventListener("change", updatePills);
+    followupToggle.addEventListener("change", updatePills);
+    timerButton.addEventListener("click", startStopTimer);
+    resetTimerButton.addEventListener("click", resetTimer);
+    timerSelect.addEventListener("change", resetTimer);
+    copyButton.addEventListener("click", async () => {
+      if (!currentTopic) return;
+      const text = `${currentTopic.topic}\n${currentTopic.prompt}`;
+      await navigator.clipboard.writeText(text);
+      copyButton.title = "Copied";
+      window.setTimeout(() => copyButton.title = "Copy current topic", 900);
+    });
+    historyEl.addEventListener("click", (event) => {
+      const button = event.target.closest(".history-item");
+      if (!button) return;
+      const found = recent.find((item) => item.topic === button.dataset.topic);
+      if (found) render([found.category, found.topic, found.prompt, found.subtype]);
+    });
+
+    updatePills();
+    renderTimer();
+  </script>
+</body>
+</html>
